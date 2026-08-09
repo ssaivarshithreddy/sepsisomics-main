@@ -2,6 +2,9 @@ node_modules
 dist
 .output
 .vinxi
+.uv-python
+.uv-cache
 pnpm-lock.yaml
 package-lock.json
 routeTree.gen.ts
+routeTree.gen.js
