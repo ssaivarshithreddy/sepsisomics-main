@@ -5,6 +5,7 @@ const links = [
   { to: "/", label: "Home" },
   { to: "/upload", label: "Upload" },
   { to: "/results", label: "Results" },
+  { to: "/monitor", label: "ICU Monitor" },
   { to: "/biomarkers", label: "Biomarkers" },
 ];
 export function Header() {

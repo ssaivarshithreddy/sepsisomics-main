@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SepsiOmics</string>
+    <string name="title_activity_main">SepsiOmics</string>
+    <string name="package_name">com.saveetha.sepsiomics</string>
+    <string name="custom_url_scheme">com.saveetha.sepsiomics</string>
+</resources>

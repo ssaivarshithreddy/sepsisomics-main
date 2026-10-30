@@ -113,3 +113,82 @@ export const BIOMARKERS = [
     description: "Tryptophan metabolite elevated in sepsis.",
   },
 ];
+
+function parseNumeric(val) {
+  if (val === null || val === undefined || val === "") return null;
+  const num = Number(val);
+  return Number.isFinite(num) ? num : null;
+}
+
+function sigmoid(x) {
+  return 1 / (1 + Math.exp(-x));
+}
+
+export function scoreRecord(record) {
+  const contributions = [];
+  let logit = -2.2;
+
+  for (const biomarker of BIOMARKERS) {
+    const raw = parseNumeric(record[biomarker.key]);
+    if (raw === null) continue;
+
+    const [low, high] = biomarker.normalRange;
+    const midpoint = (low + high) / 2;
+    const span = Math.max((high - low) / 2, 0.01);
+    const zScore = (raw - midpoint) / span;
+    const boundedZ = Math.max(-4, Math.min(4, zScore));
+    const contribution = biomarker.weight * boundedZ * 0.55;
+    logit += contribution;
+
+    let status = "normal";
+    if (raw > high) status = "abnormal-high";
+    else if (raw < low) status = "abnormal-low";
+
+    contributions.push({
+      key: biomarker.key,
+      label: biomarker.label,
+      category: biomarker.category,
+      value: raw,
+      zScore,
+      contribution,
+      importance: 0,
+      description: biomarker.description,
+      status,
+    });
+  }
+
+  const maxAbs = Math.max(...contributions.map((c) => Math.abs(c.contribution)), 0.0001);
+  for (const c of contributions) {
+    c.importance = Math.abs(c.contribution) / maxAbs;
+  }
+  contributions.sort((a, b) => b.importance - a.importance);
+
+  const probability = sigmoid(logit);
+  const sepsis = probability >= 0.5;
+  const abnormalCount = contributions.filter((c) => c.status !== "normal").length;
+  const severityScore = Math.min(1, probability * 0.7 + (abnormalCount / BIOMARKERS.length) * 0.6);
+
+  let severity = "Low";
+  if (severityScore >= 0.75) severity = "Severe";
+  else if (severityScore >= 0.5) severity = "Moderate";
+
+  const topDrivers = contributions.slice(0, 5);
+  const driverText = topDrivers
+    .slice(0, 3)
+    .map((d) => `${d.label} (${d.value.toFixed(2)})`)
+    .join(", ");
+
+  const summary = sepsis
+    ? `Model indicates ${severity.toLowerCase()} sepsis risk (${(probability * 100).toFixed(1)}% confidence). Primary contributors: ${driverText}.`
+    : `Model indicates low sepsis risk (${((1 - probability) * 100).toFixed(1)}% confidence the patient is unaffected). Markers reviewed: ${driverText}.`;
+
+  return {
+    sepsis,
+    probability,
+    severity,
+    severityScore,
+    contributions,
+    topDrivers,
+    summary,
+  };
+}

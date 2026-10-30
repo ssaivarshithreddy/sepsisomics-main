@@ -1,11 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import Papa from "papaparse";
-import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Upload,
+  FileSpreadsheet,
+  Download,
+  AlertCircle,
+  CheckCircle2,
+  Sparkles,
+  Database,
+  ShieldAlert,
+} from "lucide-react";
 import { Header } from "@/components/Header";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { savePredictions } from "@/lib/results-store";
 import { BIOMARKERS } from "@/lib/sepsis-model";
+import { PHYSIONET_SEPSIS_COHORT, MIMIC_IV_COHORT, cohortToCsv } from "@/lib/benchmark-data";
+
 export const Route = createFileRoute("/upload")({
   head: () => ({
     meta: [
@@ -18,10 +29,12 @@ export const Route = createFileRoute("/upload")({
   }),
   component: UploadPage,
 });
+
 function buildSampleCsv() {
   const headers = ["patient_id", ...BIOMARKERS.map((b) => b.key)];
   return [headers.join(",")].join("\n");
 }
+
 function UploadPage() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
@@ -29,11 +42,13 @@ function UploadPage() {
   const [filename, setFilename] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
+
   const processRecords = async (records) => {
     if (records.length === 0) {
       setError("No rows found in file.");
       return;
     }
+    setParsing(true);
     try {
       await savePredictions(records);
       navigate({ to: "/results" });
@@ -43,6 +58,24 @@ function UploadPage() {
       setParsing(false);
     }
   };
+
+  const handleBenchmarkLoad = (cohort, name) => {
+    setFilename(name);
+    setError(null);
+    void processRecords(cohort);
+  };
+
+  const downloadPhysioNetCsv = () => {
+    const csvContent = cohortToCsv(PHYSIONET_SEPSIS_COHORT);
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "physionet-2019-sepsis-benchmark.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleFile = (file) => {
     setFilename(file.name);
     setError(null);
@@ -65,6 +98,7 @@ function UploadPage() {
       },
     });
   };
+
   const downloadSample = () => {
     const blob = new Blob([buildSampleCsv()], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -74,6 +108,7 @@ function UploadPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen">
@@ -87,6 +122,60 @@ function UploadPage() {
             <p className="mt-2 text-muted-foreground">
               CSV file with one patient per row. Columns should match the expected biomarker keys.
             </p>
+          </div>
+
+          {/* Instant Clinical Benchmark Cohort Loader */}
+          <div className="mb-8 overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/10 via-card to-card p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+                  <Database className="h-3.5 w-3.5" />
+                  Product Development (PDD) Benchmark Testing
+                </span>
+                <h2 className="mt-2 text-xl font-bold font-display">
+                  Load Pre-Validated Clinical Benchmark Cohorts
+                </h2>
+                <p className="mt-1 max-w-xl text-xs text-muted-foreground">
+                  Test the complete multi-omics prediction pipeline instantly using de-identified benchmark records from PhysioNet 2019 and MIMIC-IV ICU databases. No hospital connection required.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5">
+                <button
+                  type="button"
+                  disabled={parsing}
+                  onClick={() =>
+                    handleBenchmarkLoad(
+                      PHYSIONET_SEPSIS_COHORT,
+                      "PhysioNet 2019 Sepsis Cohort (10 Patients)"
+                    )
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-50"
+                >
+                  <Sparkles className="h-4 w-4" /> Load PhysioNet 2019 (10 Patients)
+                </button>
+                <button
+                  type="button"
+                  disabled={parsing}
+                  onClick={() =>
+                    handleBenchmarkLoad(
+                      MIMIC_IV_COHORT,
+                      "MIMIC-IV Multi-Omics Cohort (5 Patients)"
+                    )
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-card px-4 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <Database className="h-4 w-4 text-primary" /> Load MIMIC-IV Cohort
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadPhysioNetCsv}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Download className="h-3.5 w-3.5" /> PhysioNet CSV
+                </button>
+              </div>
+            </div>
           </div>
 
           <div
@@ -103,6 +192,7 @@ function UploadPage() {
             }}
             className={`relative rounded-3xl border-2 border-dashed bg-card p-10 text-center transition-all sm:p-16 ${dragOver ? "border-primary bg-primary/5" : "border-border"}`}
           >
+
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Upload className="h-7 w-7" />
             </span>

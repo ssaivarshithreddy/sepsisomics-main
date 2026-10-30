@@ -10,6 +10,7 @@ import { Route as ResultsRouteImport } from './routes/results';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as SignupRouteImport } from './routes/signup';
 import { Route as BiomarkersRouteImport } from './routes/biomarkers';
+import { Route as MonitorRouteImport } from './routes/monitor';
 import { Route as IndexRouteImport } from './routes/index';
 const UploadRoute = UploadRouteImport.update({
     id: '/upload',
@@ -36,6 +37,11 @@ const BiomarkersRoute = BiomarkersRouteImport.update({
     path: '/biomarkers',
     getParentRoute: () => rootRouteImport,
 });
+const MonitorRoute = MonitorRouteImport.update({
+    id: '/monitor',
+    path: '/monitor',
+    getParentRoute: () => rootRouteImport,
+});
 const IndexRoute = IndexRouteImport.update({
     id: '/',
     path: '/',
@@ -48,6 +54,7 @@ const rootRouteChildren = {
     SignupRoute: SignupRoute,
     ResultsRoute: ResultsRoute,
     UploadRoute: UploadRoute,
+    MonitorRoute: MonitorRoute,
 };
 export const routeTree = rootRouteImport
     ._addFileChildren(rootRouteChildren)

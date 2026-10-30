@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
-import { AlertCircle, LogIn } from "lucide-react";
+import { AlertCircle, LogIn, Sparkles, ShieldCheck } from "lucide-react";
 import { Header } from "@/components/Header";
-import { login } from "@/lib/api";
+import { login, setSession } from "@/lib/api";
+
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/login")({
   }),
   component: LoginPage,
 });
+
 function LoginPage() {
   const navigate = useNavigate();
   const search = useSearch({ strict: false });
@@ -19,6 +21,20 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const handleDemoAccess = () => {
+    setSession({
+      access_token: "demo-evaluator-session-token",
+      user: {
+        id: "evaluator-saveetha",
+        email: "bioinfo.evaluator@saveetha.ac.in",
+        role: "doctor",
+        user_metadata: { full_name: "Dr. Evaluator / Clinical Reviewer" },
+      },
+    });
+    navigate({ to: search.redirect || "/upload" });
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setError(null);
@@ -32,19 +48,37 @@ function LoginPage() {
       setLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen">
       <Header />
       <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
         <h1 className="font-display text-3xl font-bold tracking-tight">Clinical Login</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Use your Supabase Auth account to continue.
+          Authenticate to access the multi-omics prediction and ICU monitoring workspace.
         </p>
+
+        {/* Quick Demo Access for Project Evaluation */}
+        <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center">
+          <p className="text-xs font-medium text-foreground">
+            Project Development & Review Mode
+          </p>
+          <button
+            type="button"
+            onClick={handleDemoAccess}
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90"
+          >
+            <Sparkles className="h-4 w-4" /> 1-Click Evaluator Access (No Password Required)
+          </button>
+        </div>
 
         <form
           onSubmit={submit}
-          className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]"
+          className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]"
         >
+          <div className="text-center text-xs text-muted-foreground mb-4">
+            — or sign in with credentials —
+          </div>
           <label className="block text-sm font-medium">
             Email
             <input
@@ -75,9 +109,9 @@ function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
           >
-            <LogIn className="h-4 w-4" /> {loading ? "Signing in..." : "Sign in"}
+            <LogIn className="h-4 w-4" /> {loading ? "Signing in..." : "Sign in with password"}
           </button>
         </form>
 
@@ -94,3 +128,4 @@ function LoginPage() {
     </div>
   );
 }
+

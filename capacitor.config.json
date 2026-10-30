@@ -1,0 +1,8 @@
+{
+  "appId": "com.saveetha.sepsiomics",
+  "appName": "SepsiOmics",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
